@@ -7,7 +7,10 @@
         <h2 class="text-2xl font-bold text-slate-800">Atención del {{ atencion.fecha|date:"d/m/Y H:i" }}</h2>
         <p class="text-sm text-slate-600">{{ atencion.paciente.nombre_completo }} · DNI {{ atencion.paciente.dni }} · {{ atencion.paciente.numero_historia }} · Dr(a). {{ atencion.medico.get_full_name|default:atencion.medico.username }}</p>
     </div>
-    {% block acciones %}{% endblock %}
+    <div class="flex flex-wrap gap-2">
+        <a href="{% url 'receta_pdf' atencion.pk %}" target="_blank" rel="noopener" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">Imprimir receta</a>
+        <a href="{% url 'receta_pdf' atencion.pk %}?descargar=1" class="px-4 py-2 rounded-lg border bg-white hover:bg-slate-50">Descargar PDF</a>
+    </div>
 </div>
 
 <div class="grid gap-4 lg:grid-cols-3">

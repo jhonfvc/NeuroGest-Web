@@ -169,6 +169,13 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # HU-02: el enlace de recuperación de contraseña vence en 1 hora
 PASSWORD_RESET_TIMEOUT = 60 * 60
 
+# HU-19: membrete de la receta y los reportes
+CONSULTORIO = {
+    'nombre': os.environ.get('CONSULTORIO_NOMBRE', 'Consultorio Neurológico NeuroGest'),
+    'direccion': os.environ.get('CONSULTORIO_DIRECCION', 'Villa El Salvador, Lima'),
+    'telefono': os.environ.get('CONSULTORIO_TELEFONO', ''),
+}
+
 # HU-06: API REST de consulta de DNI (sin token se usa el registro manual, HU-07)
 RENIEC_API_URL = os.environ.get('RENIEC_API_URL', 'https://api.decolecta.com/v1/reniec/dni')
 RENIEC_API_TOKEN = os.environ.get('RENIEC_API_TOKEN', '')

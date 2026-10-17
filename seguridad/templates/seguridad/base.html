@@ -21,6 +21,7 @@
                     <a href="{% url 'buscar_expediente' %}" class="hover:underline">Historias clínicas</a>
                 {% endif %}
                 {% if user.es_admin %}
+                    <a href="{% url 'reportes' %}" class="hover:underline">Reportes</a>
                     <a href="{% url 'lista_usuarios' %}" class="hover:underline">Usuarios</a>
                 {% endif %}
                 <span class="opacity-80">{{ user.get_full_name|default:user.username }} · {{ user.get_rol_display }}</span>
