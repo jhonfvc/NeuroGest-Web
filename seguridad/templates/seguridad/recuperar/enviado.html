@@ -1,0 +1,9 @@
+{% extends 'seguridad/_tarjeta.html' %}
+{% block titulo %}Correo enviado{% endblock %}
+{% block contenido %}
+<div class="text-center space-y-4">
+    <p class="text-slate-700">Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.</p>
+    <p class="text-sm text-slate-500">El enlace vence en 1 hora.</p>
+    <a href="{% url 'login' %}" class="text-indigo-600 hover:underline text-sm">Volver al inicio de sesión</a>
+</div>
+{% endblock %}

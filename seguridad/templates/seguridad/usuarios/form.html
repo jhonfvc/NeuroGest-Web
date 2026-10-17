@@ -1,0 +1,26 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="bg-white p-6 rounded-xl shadow-sm max-w-xl">
+    <h2 class="text-2xl font-bold text-slate-800 mb-4">{{ titulo }}</h2>
+    <form method="POST" class="space-y-4" novalidate>
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}
+            <p class="p-3 text-sm rounded-lg bg-red-100 text-red-700">{{ error }}</p>
+        {% endfor %}
+        {% for campo in form %}
+            <div>
+                <label for="{{ campo.id_for_label }}" class="block text-sm font-medium text-slate-700">{{ campo.label }}</label>
+                {{ campo }}
+                {% for error in campo.errors %}
+                    <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        <div class="flex gap-2">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">Guardar</button>
+            <a href="{% url 'lista_usuarios' %}" class="px-4 py-2 rounded-lg border hover:bg-slate-50">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

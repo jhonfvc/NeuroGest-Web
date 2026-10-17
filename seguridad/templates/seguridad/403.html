@@ -1,0 +1,9 @@
+{% extends 'seguridad/_tarjeta.html' %}
+{% block titulo %}Acceso denegado{% endblock %}
+{% block contenido %}
+<div class="text-center space-y-4">
+    <p class="text-lg font-semibold text-red-700">Acceso denegado</p>
+    <p class="text-slate-600 text-sm">Tu rol no tiene permiso para ver esta sección.</p>
+    <a href="{% url 'dashboard' %}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">Volver al panel</a>
+</div>
+{% endblock %}

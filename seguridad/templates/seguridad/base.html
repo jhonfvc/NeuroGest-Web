@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroGest - {% block titulo %}Panel{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <nav class="bg-indigo-700 text-white">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <a href="{% url 'dashboard' %}" class="text-xl font-bold">NeuroGest</a>
+            <div class="flex items-center gap-4 text-sm">
+                {% if user.es_admin %}
+                    <a href="{% url 'lista_usuarios' %}" class="hover:underline">Usuarios</a>
+                {% endif %}
+                <span class="opacity-80">{{ user.get_full_name|default:user.username }} · {{ user.get_rol_display }}</span>
+                <form method="POST" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-indigo-900 hover:bg-indigo-800 px-3 py-1 rounded-lg">Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-6">
+        {% include 'seguridad/_mensajes.html' %}
+        {% block contenido %}{% endblock %}
+    </main>
+</body>
+</html>

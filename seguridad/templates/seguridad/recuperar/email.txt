@@ -1,0 +1,10 @@
+Hola {{ user.get_full_name|default:user.username }},
+
+Recibimos una solicitud para restablecer tu contraseña de NeuroGest.
+Ingresa al siguiente enlace (vence en 1 hora):
+
+{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}
+
+Si no solicitaste este cambio, ignora este correo.
+
+NeuroGest

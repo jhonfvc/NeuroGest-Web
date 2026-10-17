@@ -1,0 +1,59 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+    <h2 class="text-2xl font-bold text-slate-800">Usuarios del sistema</h2>
+    <a href="{% url 'crear_usuario' %}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">+ Nuevo usuario</a>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-left text-slate-600">
+            <tr>
+                <th class="px-4 py-3">Usuario</th>
+                <th class="px-4 py-3">Nombre</th>
+                <th class="px-4 py-3">DNI</th>
+                <th class="px-4 py-3">Correo</th>
+                <th class="px-4 py-3">Rol</th>
+                <th class="px-4 py-3">Estado</th>
+                <th class="px-4 py-3">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in usuarios %}
+            <tr class="border-t {% if not u.is_active %}text-slate-400{% endif %}">
+                <td class="px-4 py-3 font-medium">{{ u.username }}</td>
+                <td class="px-4 py-3">{{ u.get_full_name }}</td>
+                <td class="px-4 py-3">{{ u.dni|default:"-" }}</td>
+                <td class="px-4 py-3">{{ u.email }}</td>
+                <td class="px-4 py-3">{{ u.get_rol_display }}</td>
+                <td class="px-4 py-3">
+                    {% if u.is_active %}
+                        <span class="px-2 py-1 rounded-full bg-green-100 text-green-700">Activo</span>
+                    {% else %}
+                        <span class="px-2 py-1 rounded-full bg-slate-200 text-slate-600">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex gap-2">
+                        {% if not u.es_admin %}
+                            <a href="{% url 'cambiar_rol' u.pk %}" class="text-indigo-600 hover:underline">Rol</a>
+                        {% endif %}
+                        {% if u != user %}
+                            <form method="POST" action="{% url 'cambiar_estado' u.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="{% if u.is_active %}text-red-600{% else %}text-green-600{% endif %} hover:underline">
+                                    {% if u.is_active %}Desactivar{% else %}Activar{% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">No hay usuarios registrados.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
