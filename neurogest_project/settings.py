@@ -37,6 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Mis aplicaciones de NeuroGest 
+    'seguridad', 
+    'admision', 
+    'hce', 
+    'reportes',
 ]
 
 MIDDLEWARE = [
@@ -125,3 +131,10 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+#Modelo de usuario personalizado
+AUTH_USER_MODEL = 'seguridad.Usuario'
+
+#Redirección después de iniciar sesión
+LOGIN_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = 'login'
