@@ -1,0 +1,7 @@
+<div>
+    <label for="{{ campo.id_for_label }}" class="block text-sm font-medium text-slate-700">{{ campo.label }}{% if campo.field.required %} *{% endif %}</label>
+    {{ campo }}
+    {% for error in campo.errors %}
+        <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+    {% endfor %}
+</div>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroGest - {% block titulo %}Panel{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <nav class="bg-indigo-700 text-white">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <a href="{% url 'dashboard' %}" class="text-xl font-bold">NeuroGest</a>
+            <div class="flex flex-wrap items-center gap-4 text-sm">
+                {% if user.es_admin or user.rol == 'RECEPCION' %}
+                    <a href="{% url 'lista_pacientes' %}" class="hover:underline">Pacientes</a>
+                    <a href="{% url 'nueva_cita' %}" class="hover:underline">Nueva cita</a>
+                {% endif %}
+                <a href="{% url 'agenda' %}" class="hover:underline">Agenda</a>
+                <a href="{% url 'calendario' %}" class="hover:underline">Calendario</a>
+                {% if user.es_admin or user.rol == 'MEDICO' %}
+                    <a href="{% url 'buscar_expediente' %}" class="hover:underline">Historias clínicas</a>
+                {% endif %}
+                {% if user.es_admin %}
+                    <a href="{% url 'reportes' %}" class="hover:underline">Reportes</a>
+                    <a href="{% url 'lista_usuarios' %}" class="hover:underline">Usuarios</a>
+                {% endif %}
+                <span class="opacity-80">{{ user.get_full_name|default:user.username }} · {{ user.get_rol_display }}</span>
+                <form method="POST" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-indigo-900 hover:bg-indigo-800 px-3 py-1 rounded-lg">Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-6">
+        {% include 'seguridad/_mensajes.html' %}
+        {% block contenido %}{% endblock %}
+    </main>
+
+    {% if user.rol == 'MEDICO' %}
+    {# HU-12: aviso en la pantalla del médico cuando un paciente pasa a "En espera" #}
+    <div id="aviso-espera" class="hidden fixed bottom-4 right-4 left-4 sm:left-auto sm:w-80 bg-amber-100 border border-amber-300 text-amber-900 rounded-xl shadow-lg p-4" role="status" aria-live="polite">
+        <p class="font-semibold">Pacientes en sala de espera</p>
+        <ul id="aviso-espera-lista" class="text-sm mt-1 space-y-1"></ul>
+        <a href="{% url 'agenda' %}?estado=EN_ESPERA" class="inline-block mt-2 text-sm font-semibold underline">Ver agenda</a>
+    </div>
+    <script>
+        (function () {
+            const aviso = document.getElementById('aviso-espera');
+            const lista = document.getElementById('aviso-espera-lista');
+            async function revisar() {
+                try {
+                    const resp = await fetch("{% url 'api_en_espera' %}", {headers: {'Accept': 'application/json'}});
+                    if (resp.status === 401) { window.location.reload(); return; }
+                    if (!resp.ok) return;
+                    const {pacientes} = await resp.json();
+                    lista.replaceChildren(...pacientes.map(p => {
+                        const li = document.createElement('li');
+                        li.textContent = `${p.hora} · ${p.paciente} (llegó ${p.llegada})`;
+                        return li;
+                    }));
+                    aviso.classList.toggle('hidden', pacientes.length === 0);
+                } catch (e) { /* sin conexión: se reintenta en el siguiente ciclo */ }
+            }
+            revisar();
+            setInterval(revisar, 10000);
+        })();
+    </script>
+    {% endif %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

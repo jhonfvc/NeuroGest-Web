@@ -1,0 +1,48 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Agendar cita{% endblock %}
+{% block contenido %}
+<div class="bg-white p-6 rounded-xl shadow-sm max-w-xl">
+    <h2 class="text-2xl font-bold text-slate-800 mb-4">Agendar cita</h2>
+    <form method="POST" class="space-y-4" novalidate>
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}
+            <p class="p-3 text-sm rounded-lg bg-red-100 text-red-700">{{ error }}</p>
+        {% endfor %}
+        {% include 'seguridad/_campo.html' with campo=form.paciente_dni %}
+        <p class="text-xs text-slate-500 -mt-3">¿Paciente nuevo? <a href="{% url 'registrar_paciente' %}" class="text-indigo-600 hover:underline">Regístralo aquí</a>.</p>
+        {% include 'seguridad/_campo.html' with campo=form.medico %}
+        {% include 'seguridad/_campo.html' with campo=form.fecha %}
+        {% include 'seguridad/_campo.html' with campo=form.hora %}
+        <p id="sin-turnos" class="hidden text-sm text-amber-800 -mt-3">No hay turnos libres para ese médico en esta fecha.</p>
+        {% include 'seguridad/_campo.html' with campo=form.motivo %}
+        <div class="flex gap-2">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">Agendar</button>
+            <a href="{% url 'agenda' %}" class="px-4 py-2 rounded-lg border hover:bg-slate-50">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const medico = document.getElementById('id_medico');
+    const fecha = document.getElementById('id_fecha');
+    const hora = document.getElementById('id_hora');
+    const sinTurnos = document.getElementById('sin-turnos');
+    const elegida = hora.value || "{{ form.hora.value|default_if_none:''|stringformat:'s'|slice:':5' }}";
+
+    async function actualizarTurnos() {
+        if (!medico.value || !fecha.value) return;
+        const resp = await fetch(`{% url 'api_disponibilidad' %}?medico=${medico.value}&fecha=${fecha.value}`);
+        if (!resp.ok) return;
+        const {turnos} = await resp.json();
+        hora.replaceChildren(...turnos.map(t => new Option(t, t, false, t === elegida)));
+        sinTurnos.classList.toggle('hidden', turnos.length > 0);
+    }
+    medico.addEventListener('change', actualizarTurnos);
+    fecha.addEventListener('change', actualizarTurnos);
+    actualizarTurnos();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Panel de Administración{% endblock %}
+{% block contenido %}
+<h2 class="text-2xl font-bold text-slate-800 mb-4">Panel de Administración</h2>
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <a href="{% url 'lista_usuarios' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
+        <p class="font-semibold text-indigo-700">Usuarios y roles</p>
+        <p class="text-sm text-slate-500 mt-1">Crear cuentas, asignar roles y desactivar accesos.</p>
+    </a>
+    <a href="{% url 'agenda' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
+        <p class="font-semibold text-indigo-700">Agenda y citas</p>
+        <p class="text-sm text-slate-500 mt-1">Agenda diaria y calendario de todos los médicos.</p>
+    </a>
+    <a href="{% url 'reportes' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
+        <p class="font-semibold text-indigo-700">Reportes</p>
+        <p class="text-sm text-slate-500 mt-1">Citas atendidas, canceladas y ausentes; exportar a Excel o PDF.</p>
+    </a>
+</div>
+{% endblock %}

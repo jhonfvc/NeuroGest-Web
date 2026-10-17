@@ -1,0 +1,23 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Panel de Recepción{% endblock %}
+{% block contenido %}
+<h2 class="text-2xl font-bold text-slate-800 mb-4">Panel de Recepción</h2>
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <a href="{% url 'registrar_paciente' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
+        <p class="font-semibold text-indigo-700">Registrar paciente</p>
+        <p class="text-sm text-slate-500 mt-1">Autocompletado por DNI o registro manual.</p>
+    </a>
+    <a href="{% url 'nueva_cita' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
+        <p class="font-semibold text-indigo-700">Agendar cita</p>
+        <p class="text-sm text-slate-500 mt-1">Turnos libres por médico, sin cruces de horario.</p>
+    </a>
+    <a href="{% url 'agenda' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
+        <p class="font-semibold text-indigo-700">Agenda de hoy</p>
+        <p class="text-sm text-slate-500 mt-1">Confirmar llegadas, reprogramar y cancelar.</p>
+    </a>
+    <a href="{% url 'calendario' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
+        <p class="font-semibold text-indigo-700">Calendario</p>
+        <p class="text-sm text-slate-500 mt-1">Vista semanal por médico.</p>
+    </a>
+</div>
+{% endblock %}
