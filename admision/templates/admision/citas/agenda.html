@@ -1,0 +1,179 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Agenda{% endblock %}
+{% block contenido %}
+<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+    <h2 class="text-2xl font-bold text-slate-800">Agenda {% if es_hoy %}de hoy{% endif %} · {{ fecha|date:"l d/m/Y" }}</h2>
+    {% if user.es_admin or user.rol == 'RECEPCION' %}
+        <a href="{% url 'nueva_cita' %}?fecha={{ fecha|date:'Y-m-d' }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">+ Nueva cita</a>
+    {% endif %}
+</div>
+
+<form method="GET" class="flex flex-wrap items-end gap-2 mb-4">
+    <a href="?fecha={{ anterior|date:'Y-m-d' }}&estado={{ estado }}&medico={{ medico_sel }}" class="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50" aria-label="Día anterior">&larr;</a>
+    <div>
+        <label for="fecha" class="block text-xs text-slate-500">Fecha</label>
+        <input type="date" id="fecha" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="px-3 py-2 border rounded-lg">
+    </div>
+    <a href="?fecha={{ siguiente|date:'Y-m-d' }}&estado={{ estado }}&medico={{ medico_sel }}" class="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50" aria-label="Día siguiente">&rarr;</a>
+    {% if user.rol != 'MEDICO' or user.es_admin %}
+    <div>
+        <label for="medico" class="block text-xs text-slate-500">Médico</label>
+        <select id="medico" name="medico" class="px-3 py-2 border rounded-lg">
+            <option value="">Todos</option>
+            {% for m in medicos %}<option value="{{ m.pk }}" {% if m.pk|stringformat:'s' == medico_sel %}selected{% endif %}>Dr(a). {{ m.get_full_name|default:m.username }}</option>{% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    <input type="hidden" name="estado" value="{{ estado }}">
+    <button class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg">Ver</button>
+</form>
+
+<div class="flex flex-wrap gap-2 mb-4 text-sm">
+    <a href="?fecha={{ fecha|date:'Y-m-d' }}&medico={{ medico_sel }}" class="px-3 py-1 rounded-full border {% if not estado %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white{% endif %}">Todas</a>
+    {% for clave, nombre, total in filtros %}
+        <a href="?fecha={{ fecha|date:'Y-m-d' }}&medico={{ medico_sel }}&estado={{ clave }}" class="px-3 py-1 rounded-full border {% if estado == clave %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white{% endif %}">
+            {{ nombre }} ({{ total }})
+        </a>
+    {% endfor %}
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-left text-slate-600">
+            <tr>
+                <th class="px-4 py-3">Hora</th>
+                <th class="px-4 py-3">Paciente</th>
+                <th class="px-4 py-3">Médico</th>
+                <th class="px-4 py-3">Motivo</th>
+                <th class="px-4 py-3">Estado</th>
+                <th class="px-4 py-3">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for c in citas %}
+            <tr class="border-t {% if c.estado == 'CANCELADA' %}text-slate-400{% endif %}">
+                <td class="px-4 py-3 font-mono">{{ c.hora|time:"H:i" }}</td>
+                <td class="px-4 py-3">
+                    <p class="font-medium">{{ c.paciente.nombre_completo }}</p>
+                    <p class="text-xs text-slate-500">DNI {{ c.paciente.dni }} · {{ c.paciente.numero_historia }}</p>
+                </td>
+                <td class="px-4 py-3">Dr(a). {{ c.medico.get_full_name|default:c.medico.username }}</td>
+                <td class="px-4 py-3">{{ c.motivo|default:"-" }}{% if c.motivo_cancelacion %}<p class="text-xs">Cancelada: {{ c.motivo_cancelacion }}</p>{% endif %}</td>
+                <td class="px-4 py-3">
+                    {% if c.estado == 'AGENDADA' %}<span class="px-2 py-1 rounded-full bg-sky-100 text-sky-800">Agendada</span>
+                    {% elif c.estado == 'EN_ESPERA' %}<span class="px-2 py-1 rounded-full bg-amber-100 text-amber-900">En espera{% if c.llegada_en %} · {{ c.llegada_en|time:"H:i" }}{% endif %}</span>
+                    {% elif c.estado == 'ATENDIDA' %}<span class="px-2 py-1 rounded-full bg-green-100 text-green-800">Atendida</span>
+                    {% else %}<span class="px-2 py-1 rounded-full bg-slate-200 text-slate-600">Cancelada</span>{% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex flex-wrap gap-2">
+                    {% if user.es_admin or user.rol == 'RECEPCION' %}
+                        {% if c.estado == 'AGENDADA' and es_hoy %}
+                            <form method="POST" action="{% url 'confirmar_llegada' c.pk %}">{% csrf_token %}
+                                <button class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg">Confirmar llegada</button>
+                            </form>
+                        {% endif %}
+                        {% if c.estado == 'AGENDADA' %}
+                            <button type="button" class="js-reprogramar text-indigo-600 hover:underline"
+                                    data-url="{% url 'reprogramar_cita' c.pk %}" data-id="{{ c.pk }}" data-medico="{{ c.medico_id }}"
+                                    data-fecha="{{ c.fecha|date:'Y-m-d' }}" data-paciente="{{ c.paciente.nombre_completo }}">Reprogramar</button>
+                        {% endif %}
+                        {% if c.editable %}
+                            <button type="button" class="js-cancelar text-red-600 hover:underline"
+                                    data-url="{% url 'cancelar_cita' c.pk %}" data-paciente="{{ c.paciente.nombre_completo }}">Cancelar</button>
+                        {% endif %}
+                    {% endif %}
+                    {% if user.rol == 'MEDICO' and c.estado == 'EN_ESPERA' %}
+                        <form method="POST" action="{% url 'atender_cita' c.pk %}">{% csrf_token %}
+                            <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg">Atender</button>
+                        </form>
+                    {% endif %}
+                    </div>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">No hay citas para este día.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# HU-10: modal de reprogramación #}
+<dialog id="dlg-reprogramar" class="rounded-xl p-0 w-full max-w-md backdrop:bg-black/40">
+    <form method="POST" id="form-reprogramar" class="p-6 space-y-4">
+        {% csrf_token %}
+        <h3 class="text-lg font-bold text-slate-800">Reprogramar cita</h3>
+        <p class="text-sm text-slate-600" id="rep-paciente"></p>
+        <div>
+            <label for="rep-fecha" class="block text-sm font-medium text-slate-700">Nueva fecha</label>
+            <input type="date" id="rep-fecha" name="fecha" required min="{% now 'Y-m-d' %}" class="mt-1 w-full px-4 py-2 border rounded-lg">
+        </div>
+        <div>
+            <label for="rep-hora" class="block text-sm font-medium text-slate-700">Turno disponible</label>
+            <select id="rep-hora" name="hora" required class="mt-1 w-full px-4 py-2 border rounded-lg"></select>
+            <p id="rep-sin-turnos" class="hidden text-sm text-amber-800 mt-1">No hay turnos libres ese día.</p>
+        </div>
+        <div class="flex justify-end gap-2">
+            <button type="button" class="js-cerrar px-4 py-2 rounded-lg border hover:bg-slate-50">Volver</button>
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">Guardar</button>
+        </div>
+    </form>
+</dialog>
+
+{# HU-11: modal de cancelación con motivo obligatorio #}
+<dialog id="dlg-cancelar" class="rounded-xl p-0 w-full max-w-md backdrop:bg-black/40">
+    <form method="POST" id="form-cancelar" class="p-6 space-y-4">
+        {% csrf_token %}
+        <h3 class="text-lg font-bold text-slate-800">Cancelar cita</h3>
+        <p class="text-sm text-slate-600" id="can-paciente"></p>
+        <div>
+            <label for="can-motivo" class="block text-sm font-medium text-slate-700">Motivo de la cancelación *</label>
+            <textarea id="can-motivo" name="motivo_cancelacion" required minlength="3" maxlength="200" rows="3" class="mt-1 w-full px-4 py-2 border rounded-lg"></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+            <button type="button" class="js-cerrar px-4 py-2 rounded-lg border hover:bg-slate-50">Volver</button>
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg">Confirmar cancelación</button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const dlgRep = document.getElementById('dlg-reprogramar');
+    const dlgCan = document.getElementById('dlg-cancelar');
+    const repFecha = document.getElementById('rep-fecha');
+    const repHora = document.getElementById('rep-hora');
+    let citaActual = null;
+
+    async function cargarTurnos() {
+        if (!citaActual || !repFecha.value) return;
+        const url = `{% url 'api_disponibilidad' %}?medico=${citaActual.medico}&fecha=${repFecha.value}&excluir=${citaActual.id}`;
+        const resp = await fetch(url);
+        const {turnos} = resp.ok ? await resp.json() : {turnos: []};
+        repHora.replaceChildren(...turnos.map(t => new Option(t, t)));
+        document.getElementById('rep-sin-turnos').classList.toggle('hidden', turnos.length > 0);
+    }
+
+    document.querySelectorAll('.js-reprogramar').forEach(btn => btn.addEventListener('click', () => {
+        citaActual = btn.dataset;
+        document.getElementById('form-reprogramar').action = btn.dataset.url;
+        document.getElementById('rep-paciente').textContent = btn.dataset.paciente;
+        repFecha.value = btn.dataset.fecha;
+        cargarTurnos();
+        dlgRep.showModal();
+    }));
+    repFecha.addEventListener('change', cargarTurnos);
+
+    document.querySelectorAll('.js-cancelar').forEach(btn => btn.addEventListener('click', () => {
+        document.getElementById('form-cancelar').action = btn.dataset.url;
+        document.getElementById('can-paciente').textContent = btn.dataset.paciente;
+        document.getElementById('can-motivo').value = '';
+        dlgCan.showModal();
+    }));
+
+    document.querySelectorAll('.js-cerrar').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+})();
+</script>
+{% endblock %}

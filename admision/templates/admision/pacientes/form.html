@@ -1,0 +1,125 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Registrar paciente{% endblock %}
+{% block contenido %}
+<div class="bg-white p-6 rounded-xl shadow-sm max-w-2xl">
+    <h2 class="text-2xl font-bold text-slate-800 mb-1">Registrar paciente</h2>
+    <p class="text-sm text-slate-500 mb-4">Ingresa el DNI para autocompletar los datos desde RENIEC.</p>
+
+    <form method="POST" class="space-y-4" novalidate>
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}
+            <p class="p-3 text-sm rounded-lg bg-red-100 text-red-700">{{ error }}</p>
+        {% endfor %}
+
+        <div>
+            <label for="{{ form.dni.id_for_label }}" class="block text-sm font-medium text-slate-700">DNI *</label>
+            <div class="flex gap-2">
+                {{ form.dni }}
+                <button type="button" id="btn-buscar" class="mt-1 shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 rounded-lg disabled:opacity-50">Buscar</button>
+            </div>
+            {% for error in form.dni.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+            <div id="estado-dni" class="hidden mt-2 p-3 text-sm rounded-lg" role="status" aria-live="polite"></div>
+        </div>
+
+        <fieldset id="datos" class="grid gap-4 sm:grid-cols-2">
+            <legend class="sr-only">Datos del paciente</legend>
+            <div class="sm:col-span-2">{% include 'seguridad/_campo.html' with campo=form.nombres %}</div>
+            {% include 'seguridad/_campo.html' with campo=form.apellido_paterno %}
+            {% include 'seguridad/_campo.html' with campo=form.apellido_materno %}
+            {% include 'seguridad/_campo.html' with campo=form.fecha_nacimiento %}
+            {% include 'seguridad/_campo.html' with campo=form.sexo %}
+            {% include 'seguridad/_campo.html' with campo=form.telefono %}
+            {% include 'seguridad/_campo.html' with campo=form.direccion %}
+        </fieldset>
+
+        <p class="text-sm">
+            <button type="button" id="btn-manual" class="text-indigo-600 hover:underline">Registrar manualmente sin consultar RENIEC</button>
+        </p>
+
+        <div class="flex flex-wrap gap-2">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">Guardar paciente</button>
+            <button type="submit" name="siguiente" value="cita" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg">Guardar y agendar cita</button>
+            <a href="{% url 'lista_pacientes' %}" class="px-4 py-2 rounded-lg border hover:bg-slate-50">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const dni = document.getElementById('{{ form.dni.id_for_label }}');
+    const btn = document.getElementById('btn-buscar');
+    const estado = document.getElementById('estado-dni');
+    const campoNombres = ['nombres', 'apellido_paterno', 'apellido_materno'].map(n => document.getElementById('id_' + n));
+    const todos = document.querySelectorAll('#datos input, #datos select');
+    const urlBase = "{% url 'api_consulta_dni' '00000000' %}";
+
+    function aviso(texto, tipo) {
+        const colores = {ok: 'bg-green-100 text-green-800', manual: 'bg-amber-100 text-amber-900', error: 'bg-red-100 text-red-700', info: 'bg-slate-100 text-slate-700'};
+        estado.className = 'mt-2 p-3 text-sm rounded-lg ' + colores[tipo];
+        estado.innerHTML = texto;
+    }
+
+    function modoManual(mensaje) {
+        todos.forEach(c => { c.readOnly = false; c.classList.remove('bg-slate-100'); });
+        if (mensaje) aviso(mensaje, 'manual');
+        campoNombres[0].focus();
+    }
+
+    function bloquearNombres() {
+        campoNombres.forEach(c => { c.readOnly = true; c.classList.add('bg-slate-100'); });
+    }
+
+    function convertirFecha(valor) {
+        const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(valor || '');
+        return m ? `${m[3]}-${m[2]}-${m[1]}` : (valor || '');
+    }
+
+    async function buscar() {
+        const numero = dni.value.trim();
+        if (!/^\d{8}$/.test(numero)) { aviso('El DNI debe tener 8 dígitos.', 'error'); return; }
+        btn.disabled = true;
+        aviso('Consultando RENIEC…', 'info');
+        const inicio = performance.now();
+        const control = new AbortController();
+        const limite = setTimeout(() => control.abort(), 4000);
+        try {
+            const resp = await fetch(urlBase.replace('00000000', numero), {signal: control.signal, headers: {'Accept': 'application/json'}});
+            const data = await resp.json();
+            const segundos = ((performance.now() - inicio) / 1000).toFixed(1);
+            if (data.ok) {
+                const d = data.datos;
+                campoNombres[0].value = d.nombres;
+                campoNombres[1].value = d.apellido_paterno;
+                campoNombres[2].value = d.apellido_materno;
+                if (d.fecha_nacimiento) document.getElementById('id_fecha_nacimiento').value = convertirFecha(d.fecha_nacimiento);
+                bloquearNombres();
+                aviso(`Datos obtenidos de RENIEC en ${segundos} s. Completa el resto de campos.`, 'ok');
+            } else if (data.existe) {
+                aviso(`Este DNI ya está registrado: <strong>${data.paciente}</strong> (${data.numero_historia}). <a class="underline font-semibold" href="${data.url_cita}">Agendar cita</a>`, 'error');
+            } else if (data.modo === 'manual') {
+                modoManual(data.error);
+            } else {
+                aviso(data.error || 'No se pudo consultar el DNI.', 'error');
+            }
+        } catch (e) {
+            modoManual('El servicio de DNI no respondió a tiempo. Se activó el registro manual.');
+        } finally {
+            clearTimeout(limite);
+            btn.disabled = false;
+        }
+    }
+
+    btn.addEventListener('click', buscar);
+    dni.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); buscar(); } });
+    document.getElementById('btn-manual').addEventListener('click', () => modoManual('Registro manual activado.'));
+
+    {% if not form.is_bound %}
+    // Hasta consultar el DNI (o elegir modo manual) los datos personales quedan bloqueados
+    campoNombres.forEach(c => { c.readOnly = true; c.classList.add('bg-slate-100'); });
+    if (dni.value) buscar();
+    {% endif %}
+})();
+</script>
+{% endblock %}
