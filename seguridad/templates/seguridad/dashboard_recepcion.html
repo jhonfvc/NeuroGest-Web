@@ -1,0 +1,15 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Panel de Recepción{% endblock %}
+{% block contenido %}
+<h2 class="text-2xl font-bold text-slate-800 mb-4">Panel de Recepción</h2>
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="bg-white p-5 rounded-xl shadow-sm">
+        <p class="font-semibold text-indigo-700">Admisión de pacientes</p>
+        <p class="text-sm text-slate-500 mt-1">Registro por DNI (HU-06 / HU-07).</p>
+    </div>
+    <div class="bg-white p-5 rounded-xl shadow-sm">
+        <p class="font-semibold text-indigo-700">Agenda de citas</p>
+        <p class="text-sm text-slate-500 mt-1">Agendar, reprogramar y cancelar (HU-08 a HU-12).</p>
+    </div>
+</div>
+{% endblock %}
