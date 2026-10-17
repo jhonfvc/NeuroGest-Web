@@ -83,10 +83,14 @@
                                     data-url="{% url 'cancelar_cita' c.pk %}" data-paciente="{{ c.paciente.nombre_completo }}">Cancelar</button>
                         {% endif %}
                     {% endif %}
-                    {% if user.rol == 'MEDICO' and c.estado == 'EN_ESPERA' %}
-                        <form method="POST" action="{% url 'atender_cita' c.pk %}">{% csrf_token %}
-                            <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg">Atender</button>
-                        </form>
+                    {% if user.rol == 'MEDICO' %}
+                        {% if c.estado == 'EN_ESPERA' %}
+                            <a href="{% url 'nueva_atencion' c.pk %}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg">Atender</a>
+                        {% endif %}
+                        <a href="{% url 'expediente' c.paciente_id %}" class="text-indigo-600 hover:underline">Historia</a>
+                        {% if c.estado == 'ATENDIDA' and c.atencion %}
+                            <a href="{% url 'detalle_atencion' c.atencion.pk %}" class="text-indigo-600 hover:underline">Ver atención</a>
+                        {% endif %}
                     {% endif %}
                     </div>
                 </td>

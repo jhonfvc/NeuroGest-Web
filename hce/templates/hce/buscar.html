@@ -1,0 +1,73 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Historias clínicas{% endblock %}
+{% block contenido %}
+<h2 class="text-2xl font-bold text-slate-800 mb-4">Historias clínicas</h2>
+
+<form method="GET" class="mb-2" role="search">
+    <label for="q" class="sr-only">Buscar paciente</label>
+    <input id="q" name="q" value="{{ q }}" autocomplete="off" autofocus
+           placeholder="Buscar por DNI, apellidos, nombres o N° de historia (mínimo {{ min }} caracteres)"
+           class="w-full px-4 py-3 border rounded-xl text-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+</form>
+<p id="estado-busqueda" class="text-xs text-slate-500 mb-4" aria-live="polite"></p>
+
+<div id="resultados" class="grid gap-3">
+    {% for p in pacientes %}
+        <a href="{% url 'expediente' p.pk %}" class="block bg-white p-4 rounded-xl shadow-sm hover:shadow-md">
+            <p class="font-semibold text-slate-800">{{ p.nombre_completo }}</p>
+            <p class="text-sm text-slate-500">DNI {{ p.dni }} · {{ p.numero_historia }}{% if p.edad is not None %} · {{ p.edad }} años{% endif %}{% if p.ultima_atencion %} · Última atención {{ p.ultima_atencion|date:"d/m/Y" }}{% endif %}</p>
+        </a>
+    {% empty %}
+        {% if q|length >= min %}<p class="text-slate-500">No se encontraron pacientes.</p>{% endif %}
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const input = document.getElementById('q');
+    const contenedor = document.getElementById('resultados');
+    const estado = document.getElementById('estado-busqueda');
+    const urlExpediente = "{% url 'expediente' 0 %}";
+    let espera, ultimo = 0;
+
+    function tarjeta(p) {
+        const a = document.createElement('a');
+        a.href = urlExpediente.replace('/0/', `/${p.id}/`);
+        a.className = 'block bg-white p-4 rounded-xl shadow-sm hover:shadow-md';
+        const nombre = document.createElement('p');
+        nombre.className = 'font-semibold text-slate-800';
+        nombre.textContent = p.nombre;
+        const detalle = document.createElement('p');
+        detalle.className = 'text-sm text-slate-500';
+        detalle.textContent = [`DNI ${p.dni}`, p.numero_historia, p.edad !== null ? `${p.edad} años` : null,
+                               p.ultima_atencion ? `Última atención ${p.ultima_atencion}` : null].filter(Boolean).join(' · ');
+        a.append(nombre, detalle);
+        return a;
+    }
+
+    async function buscar() {
+        const q = input.value.trim();
+        if (q.length < {{ min }}) { contenedor.replaceChildren(); estado.textContent = ''; return; }
+        const id = ++ultimo;
+        const inicio = performance.now();
+        const resp = await fetch(`{% url 'api_buscar_expediente' %}?q=${encodeURIComponent(q)}`);
+        if (!resp.ok || id !== ultimo) return;
+        const {resultados} = await resp.json();
+        const segundos = ((performance.now() - inicio) / 1000).toFixed(2);
+        estado.textContent = `${resultados.length} resultado(s) en ${segundos} s`;
+        if (resultados.length) {
+            contenedor.replaceChildren(...resultados.map(tarjeta));
+        } else {
+            const vacio = document.createElement('p');
+            vacio.className = 'text-slate-500';
+            vacio.textContent = 'No se encontraron pacientes.';
+            contenedor.replaceChildren(vacio);
+        }
+    }
+
+    input.addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(buscar, 250); });
+})();
+</script>
+{% endblock %}

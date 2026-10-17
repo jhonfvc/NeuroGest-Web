@@ -1,0 +1,15 @@
+<div class="js-fila-medicamento border rounded-xl p-4 bg-slate-50">
+    {% for error in f.non_field_errors %}<p class="text-sm text-red-600 mb-2">{{ error }}</p>{% endfor %}
+    {% for campo in f.hidden_fields %}{{ campo }}{% endfor %}
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="lg:col-span-2">{% include 'seguridad/_campo.html' with campo=f.medicamento %}</div>
+        <div class="lg:col-span-2">{% include 'seguridad/_campo.html' with campo=f.presentacion %}</div>
+        {% include 'seguridad/_campo.html' with campo=f.dosis %}
+        {% include 'seguridad/_campo.html' with campo=f.unidad %}
+        {% include 'seguridad/_campo.html' with campo=f.via %}
+        {% include 'seguridad/_campo.html' with campo=f.frecuencia_horas %}
+        {% include 'seguridad/_campo.html' with campo=f.duracion_dias %}
+        <div class="sm:col-span-2 lg:col-span-3">{% include 'seguridad/_campo.html' with campo=f.indicaciones %}</div>
+    </div>
+    <button type="button" class="js-quitar-medicamento mt-2 text-sm text-red-600 hover:underline">Quitar medicamento</button>
+</div>

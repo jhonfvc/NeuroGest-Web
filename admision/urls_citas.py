@@ -11,5 +11,4 @@ urlpatterns = [
     path('<int:pk>/reprogramar/', views.reprogramar_cita, name='reprogramar_cita'),
     path('<int:pk>/cancelar/', views.cancelar_cita, name='cancelar_cita'),
     path('<int:pk>/llegada/', views.confirmar_llegada, name='confirmar_llegada'),
-    path('<int:pk>/atender/', views.atender_cita, name='atender_cita'),
 ]
