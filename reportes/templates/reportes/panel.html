@@ -1,0 +1,153 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Reportes{% endblock %}
+{% block contenido %}
+<style>
+    .viz-root {
+        --surface-1: #ffffff;
+        --text-primary: #0f172a;
+        --text-secondary: #64748b;
+        --grid: #e2e8f0;
+        --serie-atendidas: #2a78d6;
+        --serie-canceladas: #eb6834;
+        --serie-ausentes: #1baf7a;
+    }
+</style>
+<div class="viz-root">
+<div class="flex flex-wrap items-end justify-between gap-2 mb-4">
+    <div>
+        <h2 class="text-2xl font-bold text-slate-800">Reporte de atenciones</h2>
+        <p class="text-sm text-slate-500">{{ resumen.inicio|date:"d/m/Y" }} al {{ resumen.fin|date:"d/m/Y" }}{% if resumen.medico %} · Dr(a). {{ resumen.medico.get_full_name }}{% endif %}</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="{% url 'reporte_excel' %}?{{ consulta }}" class="px-4 py-2 rounded-lg border bg-white hover:bg-slate-50 font-semibold text-sm">Exportar Excel</a>
+        <a href="{% url 'reporte_pdf' %}?{{ consulta }}" class="px-4 py-2 rounded-lg border bg-white hover:bg-slate-50 font-semibold text-sm">Exportar PDF</a>
+    </div>
+</div>
+
+<form method="GET" class="flex flex-wrap items-end gap-2 mb-6">
+    <div>
+        <label for="inicio" class="block text-xs text-slate-500">Desde</label>
+        <input type="date" id="inicio" name="inicio" value="{{ resumen.inicio|date:'Y-m-d' }}" class="px-3 py-2 border rounded-lg">
+    </div>
+    <div>
+        <label for="fin" class="block text-xs text-slate-500">Hasta</label>
+        <input type="date" id="fin" name="fin" value="{{ resumen.fin|date:'Y-m-d' }}" class="px-3 py-2 border rounded-lg">
+    </div>
+    <div>
+        <label for="medico" class="block text-xs text-slate-500">Médico</label>
+        <select id="medico" name="medico" class="px-3 py-2 border rounded-lg">
+            <option value="">Todos</option>
+            {% for m in medicos %}<option value="{{ m.pk }}" {% if m.pk|stringformat:'s' == medico_sel %}selected{% endif %}>Dr(a). {{ m.get_full_name|default:m.username }}</option>{% endfor %}
+        </select>
+    </div>
+    <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">Aplicar</button>
+</form>
+
+<div class="grid gap-4 grid-cols-2 lg:grid-cols-5 mb-6">
+    <div class="bg-white p-4 rounded-xl shadow-sm">
+        <p class="text-xs text-slate-500">Total de citas</p>
+        <p class="text-3xl font-bold text-slate-900">{{ resumen.total }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm">
+        <p class="text-xs text-slate-500 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm" style="background:var(--serie-atendidas)"></span>Atendidas</p>
+        <p class="text-3xl font-bold text-slate-900">{{ resumen.totales.atendidas }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm">
+        <p class="text-xs text-slate-500 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm" style="background:var(--serie-canceladas)"></span>Canceladas</p>
+        <p class="text-3xl font-bold text-slate-900">{{ resumen.totales.canceladas }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm">
+        <p class="text-xs text-slate-500 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm" style="background:var(--serie-ausentes)"></span>Ausentes</p>
+        <p class="text-3xl font-bold text-slate-900">{{ resumen.totales.ausentes }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm">
+        <p class="text-xs text-slate-500">Tasa de asistencia</p>
+        <p class="text-3xl font-bold text-slate-900">{% if resumen.tasa_asistencia is not None %}{{ resumen.tasa_asistencia }}%{% else %}—{% endif %}</p>
+        <p class="text-xs text-slate-500">{{ resumen.totales.pendientes }} cita(s) aún pendientes</p>
+    </div>
+</div>
+
+<section class="bg-white p-5 rounded-xl shadow-sm mb-6">
+    <h3 class="font-bold text-slate-800">Citas por día según resultado</h3>
+    <p class="text-xs text-slate-500 mb-3">Ausente: cita pasada que no fue atendida ni cancelada.</p>
+    {% if resumen.total %}
+        <div class="relative h-72"><canvas id="grafico" role="img" aria-label="Gráfico de barras apiladas de citas atendidas, canceladas y ausentes por día. Los datos están en la tabla de abajo."></canvas></div>
+    {% else %}
+        <p class="text-sm text-slate-500 py-8 text-center">No hay citas en el rango seleccionado.</p>
+    {% endif %}
+</section>
+
+{% if resumen.por_medico %}
+<section class="bg-white rounded-xl shadow-sm overflow-x-auto mb-6">
+    <h3 class="font-bold text-slate-800 px-5 pt-5 pb-2">Por médico</h3>
+    <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-left text-slate-600">
+            <tr><th class="px-4 py-2">Médico</th><th class="px-4 py-2 text-right">Atendidas</th><th class="px-4 py-2 text-right">Canceladas</th><th class="px-4 py-2 text-right">Ausentes</th><th class="px-4 py-2 text-right">Pendientes</th></tr>
+        </thead>
+        <tbody>
+        {% for m in resumen.por_medico %}
+            <tr class="border-t"><td class="px-4 py-2">Dr(a). {{ m.medico__first_name }} {{ m.medico__last_name }}</td><td class="px-4 py-2 text-right tabular-nums">{{ m.atendidas }}</td><td class="px-4 py-2 text-right tabular-nums">{{ m.canceladas }}</td><td class="px-4 py-2 text-right tabular-nums">{{ m.ausentes }}</td><td class="px-4 py-2 text-right tabular-nums">{{ m.pendientes }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+<details class="bg-white rounded-xl shadow-sm">
+    <summary class="font-bold text-slate-800 px-5 py-4 cursor-pointer">Tabla por día</summary>
+    <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-left text-slate-600">
+            <tr><th class="px-4 py-2">Fecha</th><th class="px-4 py-2 text-right">Atendidas</th><th class="px-4 py-2 text-right">Canceladas</th><th class="px-4 py-2 text-right">Ausentes</th><th class="px-4 py-2 text-right">Pendientes</th></tr>
+        </thead>
+        <tbody>
+        {% for d in resumen.por_dia %}
+            <tr class="border-t"><td class="px-4 py-2">{{ d.fecha|date:"D d/m/Y" }}</td><td class="px-4 py-2 text-right tabular-nums">{{ d.atendidas }}</td><td class="px-4 py-2 text-right tabular-nums">{{ d.canceladas }}</td><td class="px-4 py-2 text-right tabular-nums">{{ d.ausentes }}</td><td class="px-4 py-2 text-right tabular-nums">{{ d.pendientes }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</details>
+</div>
+{{ serie|json_script:"serie" }}
+{% endblock %}
+
+{% block scripts %}
+{% if resumen.total %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const css = getComputedStyle(document.querySelector('.viz-root'));
+    const v = n => css.getPropertyValue(n).trim();
+    const serie = JSON.parse(document.getElementById('serie').textContent);
+    const capa = (etiqueta, clave, color) => ({
+        label: etiqueta, data: serie.map(d => d[clave]), backgroundColor: v(color),
+        borderColor: v('--surface-1'), borderWidth: 2, borderRadius: 4, borderSkipped: false, maxBarThickness: 28,
+    });
+    new Chart(document.getElementById('grafico'), {
+        type: 'bar',
+        data: {
+            labels: serie.map(d => d.fecha),
+            datasets: [
+                capa('Atendidas', 'atendidas', '--serie-atendidas'),
+                capa('Canceladas', 'canceladas', '--serie-canceladas'),
+                capa('Ausentes', 'ausentes', '--serie-ausentes'),
+            ],
+        },
+        options: {
+            maintainAspectRatio: false,
+            interaction: {mode: 'index', intersect: false},
+            scales: {
+                x: {stacked: true, grid: {display: false}, ticks: {color: v('--text-secondary'), maxRotation: 0, autoSkip: true}},
+                y: {stacked: true, beginAtZero: true, ticks: {precision: 0, color: v('--text-secondary')}, grid: {color: v('--grid')}, border: {display: false}},
+            },
+            plugins: {
+                legend: {position: 'top', align: 'start', labels: {color: v('--text-primary'), boxWidth: 12, boxHeight: 12, useBorderRadius: true, borderRadius: 2}},
+                tooltip: {callbacks: {footer: items => `Total: ${items.reduce((s, i) => s + i.parsed.y, 0)}`}},
+            },
+        },
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

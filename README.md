@@ -32,8 +32,18 @@ python manage.py test
 |---|---|---|
 | E01 Seguridad | `seguridad` | HU-01 Login por roles · HU-02 Recuperación de clave · HU-03 Creación de usuarios · HU-04 Roles (RBAC) · HU-05 Desactivación de cuenta |
 | E02 Admisión y Citas | `admision` | HU-06 Búsqueda por DNI (API) · HU-07 Registro manual · HU-08 Agendamiento · HU-09 Agenda diaria · HU-10 Reprogramación · HU-11 Cancelación · HU-12 Recepción del paciente |
-| E03 Historias Clínicas | `hce` | HU-13 a HU-18 (Sprint 3) |
-| E04 Reportes | `reportes` | HU-19 y HU-20 (Sprint 4) |
+| E03 Historias Clínicas | `hce` | HU-13 Búsqueda de expediente · HU-14 Historial cronológico · HU-15 Triaje e IMC · HU-16 Evolución médica · HU-17 Diagnóstico CIE-10 · HU-18 Prescripción médica |
+| E04 Reportes | `reportes` | HU-19 Receta en PDF · HU-20 Reporte de atenciones (gráfico, Excel y PDF) |
+
+### Catálogo CIE-10
+La migración carga un catálogo base de diagnósticos neurológicos frecuentes. Para importar el catálogo completo:
+```bash
+python manage.py cargar_cie10 cie10.csv            # columnas: codigo,descripcion
+python manage.py cargar_cie10 cie10.csv --delimitador ";"
+```
+
+### Datos del consultorio (membrete de la receta)
+Se configuran con `CONSULTORIO_NOMBRE`, `CONSULTORIO_DIRECCION` y `CONSULTORIO_TELEFONO` en el `.env`.
 
 ### Permisos por rol (HU-04)
 | Ruta | Administrador | Recepción | Médico |

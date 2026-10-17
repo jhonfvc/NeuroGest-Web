@@ -1,4 +1,7 @@
 from django.urls import path
+
+from reportes.views import descargar_receta
+
 from . import views
 
 # Montado en /hce/ (solo Médico y Administrador, ver seguridad.permisos)
@@ -11,4 +14,5 @@ urlpatterns = [
     path('paciente/<int:paciente_pk>/atencion/', views.nueva_atencion, name='nueva_atencion_paciente'),
     path('cita/<int:cita_pk>/atencion/', views.nueva_atencion, name='nueva_atencion'),
     path('atencion/<int:pk>/', views.detalle_atencion, name='detalle_atencion'),
+    path('atencion/<int:pk>/receta.pdf', descargar_receta, name='receta_pdf'),
 ]
