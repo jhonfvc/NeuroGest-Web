@@ -1,0 +1,61 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Atención {{ atencion.fecha|date:"d/m/Y" }}{% endblock %}
+{% block contenido %}
+<a href="{% url 'expediente' atencion.paciente.pk %}" class="text-sm text-indigo-600 hover:underline">&larr; Historia clínica</a>
+<div class="flex flex-wrap items-end justify-between gap-2 mt-2 mb-4">
+    <div>
+        <h2 class="text-2xl font-bold text-slate-800">Atención del {{ atencion.fecha|date:"d/m/Y H:i" }}</h2>
+        <p class="text-sm text-slate-600">{{ atencion.paciente.nombre_completo }} · DNI {{ atencion.paciente.dni }} · {{ atencion.paciente.numero_historia }} · Dr(a). {{ atencion.medico.get_full_name|default:atencion.medico.username }}</p>
+    </div>
+    {% block acciones %}{% endblock %}
+</div>
+
+<div class="grid gap-4 lg:grid-cols-3">
+    <section class="bg-white p-5 rounded-xl shadow-sm">
+        <h3 class="font-bold text-slate-800 mb-2">Triaje</h3>
+        {% if atencion.triaje %}
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <dt class="text-slate-500">Presión arterial</dt><dd>{{ atencion.triaje.presion_sistolica }}/{{ atencion.triaje.presion_diastolica }} mmHg</dd>
+            <dt class="text-slate-500">Peso</dt><dd>{{ atencion.triaje.peso }} kg</dd>
+            <dt class="text-slate-500">Talla</dt><dd>{{ atencion.triaje.talla }} cm</dd>
+            <dt class="text-slate-500">IMC</dt><dd>{{ atencion.triaje.imc }} ({{ atencion.triaje.clasificacion_imc }})</dd>
+            {% if atencion.triaje.frecuencia_cardiaca %}<dt class="text-slate-500">FC</dt><dd>{{ atencion.triaje.frecuencia_cardiaca }} lpm</dd>{% endif %}
+            {% if atencion.triaje.temperatura %}<dt class="text-slate-500">Temperatura</dt><dd>{{ atencion.triaje.temperatura }} °C</dd>{% endif %}
+            {% if atencion.triaje.saturacion %}<dt class="text-slate-500">SatO₂</dt><dd>{{ atencion.triaje.saturacion }} %</dd>{% endif %}
+        </dl>
+        {% else %}<p class="text-sm text-slate-500">Sin triaje.</p>{% endif %}
+    </section>
+
+    <section class="bg-white p-5 rounded-xl shadow-sm lg:col-span-2">
+        <h3 class="font-bold text-slate-800 mb-2">Diagnóstico CIE-10</h3>
+        <ul class="space-y-1 text-sm">
+            {% for d in atencion.diagnosticos.all %}
+                <li><strong>{{ d.cie10.codigo }}</strong> {{ d.cie10.descripcion }}{% if d.principal %} <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-600 text-white">Principal</span>{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="bg-white p-5 rounded-xl shadow-sm lg:col-span-3">
+        <h3 class="font-bold text-slate-800 mb-2">Evolución médica</h3>
+        <dl class="space-y-3 text-sm">
+            <div><dt class="text-slate-500">Motivo de consulta</dt><dd class="whitespace-pre-line">{{ atencion.motivo_consulta }}</dd></div>
+            {% if atencion.anamnesis %}<div><dt class="text-slate-500">Anamnesis</dt><dd class="whitespace-pre-line">{{ atencion.anamnesis }}</dd></div>{% endif %}
+            {% if atencion.examen_fisico %}<div><dt class="text-slate-500">Examen físico</dt><dd class="whitespace-pre-line">{{ atencion.examen_fisico }}</dd></div>{% endif %}
+            {% if atencion.examen_neurologico %}<div><dt class="text-slate-500">Examen neurológico</dt><dd class="whitespace-pre-line">{{ atencion.examen_neurologico }}</dd></div>{% endif %}
+            <div><dt class="text-slate-500">Evolución</dt><dd class="whitespace-pre-line">{{ atencion.evolucion }}</dd></div>
+            {% if atencion.plan %}<div><dt class="text-slate-500">Plan e indicaciones</dt><dd class="whitespace-pre-line">{{ atencion.plan }}</dd></div>{% endif %}
+        </dl>
+    </section>
+
+    <section class="bg-white p-5 rounded-xl shadow-sm lg:col-span-3">
+        <h3 class="font-bold text-slate-800 mb-2">Receta</h3>
+        {% if atencion.prescripciones.all %}
+        <ol class="list-decimal ml-5 space-y-1 text-sm">
+            {% for p in atencion.prescripciones.all %}
+                <li><strong>{{ p.medicamento }}</strong>{% if p.presentacion %} {{ p.presentacion }}{% endif %}: {{ p.posologia }}{% if p.indicaciones %}. {{ p.indicaciones }}{% endif %}</li>
+            {% endfor %}
+        </ol>
+        {% else %}<p class="text-sm text-slate-500">Sin medicamentos prescritos.</p>{% endif %}
+    </section>
+</div>
+{% endblock %}

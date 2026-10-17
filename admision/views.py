@@ -131,7 +131,7 @@ def agenda(request):
     """HU-09: citas del día filtradas por fecha y estado."""
     fecha = _fecha_param(request.GET.get('fecha'))
     estado = request.GET.get('estado', '')
-    citas = Cita.objects.del_dia(fecha).select_related('paciente', 'medico')
+    citas = Cita.objects.del_dia(fecha).select_related('paciente', 'medico', 'atencion')
     if request.user.rol == Usuario.MEDICO and not request.user.es_admin:
         citas = citas.filter(medico=request.user)
     elif request.GET.get('medico'):
@@ -232,20 +232,6 @@ def confirmar_llegada(request, pk):
         cita.llegada_en = timezone.now()
         cita.save(update_fields=['estado', 'llegada_en', 'actualizado_en'])
         messages.success(request, f"{cita.paciente.nombre_completo} está en sala de espera.")
-    return _volver_agenda(cita)
-
-
-@require_POST
-@rol_requerido(Usuario.MEDICO)
-def atender_cita(request, pk):
-    filtro = {} if request.user.es_admin else {'medico': request.user}
-    cita = get_object_or_404(Cita, pk=pk, **filtro)
-    if cita.estado != Cita.EN_ESPERA:
-        messages.error(request, "Solo se atienden pacientes que están en espera.")
-    else:
-        cita.estado = Cita.ATENDIDA
-        cita.save(update_fields=['estado', 'actualizado_en'])
-        messages.success(request, f"Atención de {cita.paciente.nombre_completo} registrada.")
     return _volver_agenda(cita)
 
 

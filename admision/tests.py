@@ -303,15 +303,10 @@ class AgendaYEstadosTests(BaseTest):
         self.client.force_login(self.medico2)
         self.assertEqual(self.client.get(reverse('api_en_espera')).json()['pacientes'], [])
 
-    def test_medico_atiende_paciente_en_espera(self):
+    def test_agenda_del_medico_muestra_boton_atender(self):
         self.client.post(reverse('confirmar_llegada', args=[self.cita_hoy.pk]))
         self.client.force_login(self.medico)
-        self.client.post(reverse('atender_cita', args=[self.cita_hoy.pk]))
-        self.cita_hoy.refresh_from_db()
-        self.assertEqual(self.cita_hoy.estado, Cita.ATENDIDA)
-
-    def test_recepcion_no_atiende(self):
-        self.assertEqual(self.client.post(reverse('atender_cita', args=[self.cita_hoy.pk])).status_code, 403)
+        self.assertContains(self.client.get(reverse('agenda')), reverse('nueva_atencion', args=[self.cita_hoy.pk]))
 
 
 class InactividadTests(BaseTest):

@@ -1,0 +1,30 @@
+{% if atenciones %}
+<ol class="relative border-l-2 border-indigo-200 ml-3 space-y-6">
+    {% for a in atenciones %}
+    <li class="ml-6">
+        <span class="absolute -left-[9px] mt-1.5 w-4 h-4 rounded-full bg-indigo-500 border-2 border-white"></span>
+        <div class="bg-white p-4 rounded-xl shadow-sm">
+            <div class="flex flex-wrap justify-between gap-2">
+                <p class="font-semibold text-slate-800">{{ a.fecha|date:"d/m/Y H:i" }}</p>
+                <p class="text-xs text-slate-500">Dr(a). {{ a.medico.get_full_name|default:a.medico.username }}</p>
+            </div>
+            <p class="text-sm mt-1"><span class="text-slate-500">Motivo:</span> {{ a.motivo_consulta }}</p>
+            <div class="flex flex-wrap gap-1 mt-2">
+                {% for d in a.diagnosticos.all %}
+                    <span class="text-xs px-2 py-1 rounded-full {% if d.principal %}bg-indigo-600 text-white{% else %}bg-indigo-100 text-indigo-800{% endif %}">{{ d.cie10.codigo }} {{ d.cie10.descripcion }}</span>
+                {% endfor %}
+            </div>
+            {% if a.triaje %}
+                <p class="text-xs text-slate-500 mt-2">PA {{ a.triaje.presion_sistolica }}/{{ a.triaje.presion_diastolica }} · Peso {{ a.triaje.peso }} kg · Talla {{ a.triaje.talla }} cm · IMC {{ a.triaje.imc }}</p>
+            {% endif %}
+            {% if a.prescripciones.all %}
+                <p class="text-xs text-slate-500 mt-1">Receta: {% for p in a.prescripciones.all %}{{ p.medicamento }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+            {% endif %}
+            <a href="{% url 'detalle_atencion' a.pk %}" class="inline-block text-sm text-indigo-600 hover:underline mt-2">Ver atención completa</a>
+        </div>
+    </li>
+    {% endfor %}
+</ol>
+{% else %}
+<p class="text-slate-500 text-sm">El paciente aún no tiene atenciones registradas.</p>
+{% endif %}

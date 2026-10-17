@@ -1,0 +1,243 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Nueva atención{% endblock %}
+{% block contenido %}
+<a href="{% url 'expediente' paciente.pk %}" class="text-sm text-indigo-600 hover:underline">&larr; Historia clínica</a>
+<div class="flex flex-wrap items-end justify-between gap-2 mt-2 mb-4">
+    <div>
+        <h2 class="text-2xl font-bold text-slate-800">Atención médica</h2>
+        <p class="text-sm text-slate-600">{{ paciente.nombre_completo }} · DNI {{ paciente.dni }} · {{ paciente.numero_historia }}{% if paciente.edad is not None %} · {{ paciente.edad }} años{% endif %}</p>
+    </div>
+    {% if cita %}<p class="text-sm text-slate-500">Cita {{ cita.fecha|date:"d/m/Y" }} {{ cita.hora|time:"H:i" }}</p>{% endif %}
+</div>
+
+<form method="POST" id="form-atencion" class="space-y-6" novalidate>
+    {% csrf_token %}
+    {% if form.errors or triaje_form.errors or recetas.total_error_count %}
+        <p class="p-3 text-sm rounded-lg bg-red-100 text-red-700">Revisa los campos marcados antes de guardar.</p>
+    {% endif %}
+
+    {# HU-15: triaje #}
+    <section class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-lg font-bold text-slate-800 mb-1">1. Triaje y funciones vitales</h3>
+        {% if ultima.triaje %}<p class="text-xs text-slate-500 mb-3">Última atención ({{ ultima.fecha|date:"d/m/Y" }}): PA {{ ultima.triaje.presion_sistolica }}/{{ ultima.triaje.presion_diastolica }}, peso {{ ultima.triaje.peso }} kg, talla {{ ultima.triaje.talla }} cm.</p>{% endif %}
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {% for campo in triaje_form %}{% include 'seguridad/_campo.html' %}{% endfor %}
+            <div>
+                <p class="block text-sm font-medium text-slate-700">IMC (automático)</p>
+                <p id="imc" class="mt-1 px-4 py-2 rounded-lg bg-slate-100 font-semibold" aria-live="polite">—</p>
+            </div>
+        </div>
+    </section>
+
+    {# HU-16: evolución médica #}
+    <section class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-lg font-bold text-slate-800 mb-3">2. Anamnesis y evolución</h3>
+        <div class="grid gap-4 lg:grid-cols-2">
+            {% for campo in form.visible_fields %}{% include 'seguridad/_campo.html' %}{% endfor %}
+        </div>
+    </section>
+
+    {# HU-17: diagnóstico CIE-10 #}
+    <section class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-lg font-bold text-slate-800 mb-1">3. Diagnóstico (CIE-10) *</h3>
+        <p class="text-xs text-slate-500 mb-3">El primero de la lista es el diagnóstico principal.</p>
+        {{ form.diagnosticos }}
+        <div class="relative">
+            <label for="buscar-cie10" class="sr-only">Buscar diagnóstico</label>
+            <input id="buscar-cie10" autocomplete="off" placeholder="Escribe un código (G43) o una descripción (migraña)…"
+                   role="combobox" aria-expanded="false" aria-controls="sugerencias-cie10"
+                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <ul id="sugerencias-cie10" role="listbox" class="hidden absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto text-sm"></ul>
+        </div>
+        <ul id="lista-diagnosticos" class="mt-3 space-y-2"></ul>
+        {% for error in form.diagnosticos.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+    </section>
+
+    {# HU-18: prescripción médica #}
+    <section class="bg-white p-6 rounded-xl shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-lg font-bold text-slate-800">4. Prescripción médica</h3>
+            <button type="button" id="agregar-medicamento" class="text-indigo-600 font-semibold hover:underline">+ Agregar medicamento</button>
+        </div>
+        {{ recetas.management_form }}
+        {% for error in recetas.non_form_errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+        <div id="medicamentos" class="space-y-4">
+            {% for f in recetas %}{% include 'hce/_medicamento.html' %}{% endfor %}
+        </div>
+        <p id="sin-medicamentos" class="text-sm text-slate-500 {% if recetas.forms %}hidden{% endif %}">Sin medicamentos. La receta es opcional.</p>
+        <template id="plantilla-medicamento">{% with f=recetas.empty_form %}{% include 'hce/_medicamento.html' %}{% endwith %}</template>
+    </section>
+
+    <div class="flex flex-wrap gap-2">
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-lg">Guardar atención</button>
+        <a href="{% url 'expediente' paciente.pk %}" class="px-6 py-3 rounded-lg border bg-white hover:bg-slate-50">Cancelar</a>
+    </div>
+</form>
+
+{# HU-NF09: confirmación previa a la emisión de la receta #}
+<dialog id="dlg-confirmar" class="rounded-xl p-0 w-full max-w-lg backdrop:bg-black/40">
+    <div class="p-6 space-y-4">
+        <h3 class="text-lg font-bold text-slate-800">Confirmar receta</h3>
+        <p class="text-sm text-slate-600">Verifica dosis y posología antes de emitir la receta:</p>
+        <ul id="resumen-receta" class="text-sm space-y-2"></ul>
+        <div class="flex justify-end gap-2">
+            <button type="button" id="btn-revisar" class="px-4 py-2 rounded-lg border hover:bg-slate-50">Revisar</button>
+            <button type="button" id="btn-emitir" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg">Confirmar y guardar</button>
+        </div>
+    </div>
+</dialog>
+{{ seleccionados_json|json_script:"cie10-iniciales" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    // ---------- HU-15: IMC automático ----------
+    const peso = document.getElementById('id_triaje-peso');
+    const talla = document.getElementById('id_triaje-talla');
+    const imc = document.getElementById('imc');
+    function calcularImc() {
+        const p = parseFloat(peso.value), t = parseFloat(talla.value) / 100;
+        if (!(p > 0 && t > 0)) { imc.textContent = '—'; return; }
+        const valor = p / (t * t);
+        const clase = valor < 18.5 ? 'Bajo peso' : valor < 25 ? 'Normal' : valor < 30 ? 'Sobrepeso' : 'Obesidad';
+        imc.textContent = `${valor.toFixed(2)} · ${clase}`;
+    }
+    peso.addEventListener('input', calcularImc);
+    talla.addEventListener('input', calcularImc);
+    calcularImc();
+
+    // ---------- HU-17: diagnósticos CIE-10 ----------
+    const oculto = document.getElementById('id_diagnosticos');
+    const buscador = document.getElementById('buscar-cie10');
+    const sugerencias = document.getElementById('sugerencias-cie10');
+    const lista = document.getElementById('lista-diagnosticos');
+    let seleccion = JSON.parse(document.getElementById('cie10-iniciales').textContent);
+    let espera;
+
+    function pintarSeleccion() {
+        oculto.value = seleccion.map(d => d.id).join(',');
+        lista.replaceChildren(...seleccion.map((d, i) => {
+            const li = document.createElement('li');
+            li.className = 'flex flex-wrap items-center gap-2 p-2 rounded-lg ' + (i === 0 ? 'bg-indigo-50 border border-indigo-200' : 'bg-slate-50');
+            const texto = document.createElement('span');
+            texto.className = 'flex-1';
+            texto.innerHTML = `<strong>${d.codigo}</strong> `;
+            texto.append(d.descripcion);
+            li.append(texto);
+            if (i === 0) {
+                const tag = document.createElement('span');
+                tag.className = 'text-xs px-2 py-1 rounded-full bg-indigo-600 text-white';
+                tag.textContent = 'Principal';
+                li.append(tag);
+            } else {
+                const principal = document.createElement('button');
+                principal.type = 'button';
+                principal.className = 'text-xs text-indigo-600 hover:underline';
+                principal.textContent = 'Marcar principal';
+                principal.onclick = () => { seleccion.unshift(...seleccion.splice(i, 1)); pintarSeleccion(); };
+                li.append(principal);
+            }
+            const quitar = document.createElement('button');
+            quitar.type = 'button';
+            quitar.className = 'text-xs text-red-600 hover:underline';
+            quitar.textContent = 'Quitar';
+            quitar.onclick = () => { seleccion.splice(i, 1); pintarSeleccion(); };
+            li.append(quitar);
+            return li;
+        }));
+    }
+
+    async function sugerir() {
+        const q = buscador.value.trim();
+        if (q.length < 2) { sugerencias.classList.add('hidden'); buscador.setAttribute('aria-expanded', 'false'); return; }
+        const resp = await fetch(`{% url 'api_cie10' %}?q=${encodeURIComponent(q)}`);
+        if (!resp.ok) return;
+        const {resultados} = await resp.json();
+        sugerencias.replaceChildren(...(resultados.length ? resultados : [null]).map(r => {
+            const li = document.createElement('li');
+            if (!r) { li.className = 'px-3 py-2 text-slate-500'; li.textContent = 'Sin coincidencias'; return li; }
+            li.role = 'option';
+            li.className = 'px-3 py-2 cursor-pointer hover:bg-indigo-50';
+            li.innerHTML = `<strong>${r.codigo}</strong> `;
+            li.append(r.descripcion);
+            li.onclick = () => {
+                if (!seleccion.some(d => d.id === r.id)) seleccion.push(r);
+                pintarSeleccion();
+                buscador.value = '';
+                sugerencias.classList.add('hidden');
+                buscador.focus();
+            };
+            return li;
+        }));
+        sugerencias.classList.remove('hidden');
+        buscador.setAttribute('aria-expanded', 'true');
+    }
+    buscador.addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(sugerir, 200); });
+    buscador.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+    document.addEventListener('click', e => { if (!sugerencias.contains(e.target) && e.target !== buscador) sugerencias.classList.add('hidden'); });
+    pintarSeleccion();
+
+    // ---------- HU-18: filas de medicamentos ----------
+    const contenedor = document.getElementById('medicamentos');
+    const total = document.getElementById('id_receta-TOTAL_FORMS');
+    const plantilla = document.getElementById('plantilla-medicamento').innerHTML;
+    const sinMedicamentos = document.getElementById('sin-medicamentos');
+
+    function renumerar() {
+        [...contenedor.children].forEach((fila, i) => {
+            fila.querySelectorAll('[name], [id], [for]').forEach(el => {
+                ['name', 'id', 'for'].forEach(attr => {
+                    if (el.hasAttribute(attr)) el.setAttribute(attr, el.getAttribute(attr).replace(/receta-(\d+|__prefix__)-/, `receta-${i}-`));
+                });
+            });
+        });
+        total.value = contenedor.children.length;
+        sinMedicamentos.classList.toggle('hidden', contenedor.children.length > 0);
+    }
+    document.getElementById('agregar-medicamento').addEventListener('click', () => {
+        contenedor.insertAdjacentHTML('beforeend', plantilla.replace(/__prefix__/g, contenedor.children.length));
+        renumerar();
+        contenedor.lastElementChild.querySelector('input').focus();
+    });
+    contenedor.addEventListener('click', e => {
+        if (e.target.closest('.js-quitar-medicamento')) { e.target.closest('.js-fila-medicamento').remove(); renumerar(); }
+    });
+
+    // ---------- HU-NF09: confirmación con advertencias de dosis ----------
+    const DOSIS_MAXIMA = {{ dosis_maxima|safe }};
+    const form = document.getElementById('form-atencion');
+    const dialogo = document.getElementById('dlg-confirmar');
+    let confirmado = false;
+
+    form.addEventListener('submit', e => {
+        const filas = [...contenedor.children].filter(f => f.querySelector('[name$="-medicamento"]').value.trim());
+        if (confirmado || !filas.length) return;
+        e.preventDefault();
+        const resumen = document.getElementById('resumen-receta');
+        resumen.replaceChildren(...filas.map(f => {
+            const valor = n => f.querySelector(`[name$="-${n}"]`);
+            const unidad = valor('unidad').value, dosis = parseFloat(valor('dosis').value);
+            const li = document.createElement('li');
+            li.className = 'p-2 rounded-lg bg-slate-50';
+            li.textContent = `${valor('medicamento').value} — ${valor('dosis').value} ${valor('unidad').selectedOptions[0].text}, cada ${valor('frecuencia_horas').value} h por ${valor('duracion_dias').value} día(s)`;
+            const maximo = DOSIS_MAXIMA[unidad];
+            if (!(dosis > 0)) {
+                li.className += ' border border-red-300';
+                li.append(Object.assign(document.createElement('p'), {className: 'text-red-700 text-xs mt-1', textContent: 'Dosis inválida.'}));
+            } else if (maximo && dosis > maximo) {
+                li.className += ' border border-red-300';
+                li.append(Object.assign(document.createElement('p'), {className: 'text-red-700 text-xs mt-1', textContent: `Supera el máximo por toma (${maximo} ${unidad}). No se podrá guardar.`}));
+            } else if (maximo && dosis > maximo * 0.5) {
+                li.className += ' border border-amber-300';
+                li.append(Object.assign(document.createElement('p'), {className: 'text-amber-800 text-xs mt-1', textContent: 'Dosis alta: verifica antes de confirmar.'}));
+            }
+            return li;
+        }));
+        dialogo.showModal();
+    });
+    document.getElementById('btn-revisar').onclick = () => dialogo.close();
+    document.getElementById('btn-emitir').onclick = () => { confirmado = true; dialogo.close(); form.requestSubmit(); };
+})();
+</script>
+{% endblock %}

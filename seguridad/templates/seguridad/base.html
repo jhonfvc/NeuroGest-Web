@@ -17,6 +17,9 @@
                 {% endif %}
                 <a href="{% url 'agenda' %}" class="hover:underline">Agenda</a>
                 <a href="{% url 'calendario' %}" class="hover:underline">Calendario</a>
+                {% if user.es_admin or user.rol == 'MEDICO' %}
+                    <a href="{% url 'buscar_expediente' %}" class="hover:underline">Historias clínicas</a>
+                {% endif %}
                 {% if user.es_admin %}
                     <a href="{% url 'lista_usuarios' %}" class="hover:underline">Usuarios</a>
                 {% endif %}
