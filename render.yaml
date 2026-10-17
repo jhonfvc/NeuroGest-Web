@@ -1,0 +1,38 @@
+# Blueprint de Render (HU-NF08: despliegue en PaaS Free Tier)
+services:
+  - type: web
+    name: neurogest-mvp
+    runtime: python
+    plan: free
+    branch: mvp
+    buildCommand: ./build.sh
+    startCommand: gunicorn neurogest_project.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.3
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEMO_PASSWORD
+        generateValue: true
+      - key: CARGAR_DEMO
+        value: "True"
+      - key: RENIEC_API_TOKEN
+        sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: neurogest-db
+          property: connectionString
+
+databases:
+  - name: neurogest-db
+    plan: free
+    databaseName: neurogest
+    user: neurogest
