@@ -1,6 +1,10 @@
-# NeuroGest-Web
+# NeuroGest-Web — Producto Mínimo Viable (MVP)
 Sistema Web de Historias Clínicas y Agendamiento para un consultorio neurológico en Villa El Salvador.
 Proyecto de Ingeniería de Software – Grupo 3, UNTELS (2026).
+
+> **Versión MVP – Sprint 2 (Avance 1).** Incluye las 12 historias de usuario del Sprint 2
+> (HU-01 a HU-12): seguridad por roles, admisión de pacientes con API de DNI y agendamiento de citas.
+> Los módulos de Historias Clínicas (Sprint 3) y Reportes (Sprint 4) están en la rama `main` (versión 1.0).
 
 **Stack:** Django 6.1 (patrón MVT) · Tailwind CSS · SQLite en desarrollo (SQL Server en producción) · API REST de DNI.
 
