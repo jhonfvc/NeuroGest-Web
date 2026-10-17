@@ -1,0 +1,47 @@
+{% extends 'seguridad/base.html' %}
+{% block titulo %}Pacientes{% endblock %}
+{% block contenido %}
+<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+    <h2 class="text-2xl font-bold text-slate-800">Pacientes</h2>
+    <a href="{% url 'registrar_paciente' %}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg">+ Registrar paciente</a>
+</div>
+
+<form method="GET" class="flex gap-2 mb-4">
+    <label for="q" class="sr-only">Buscar</label>
+    <input id="q" name="q" value="{{ q }}" placeholder="DNI, apellidos, nombres o N° de historia" class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+    <button class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg">Buscar</button>
+</form>
+
+<div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-left text-slate-600">
+            <tr>
+                <th class="px-4 py-3">N° Historia</th>
+                <th class="px-4 py-3">DNI</th>
+                <th class="px-4 py-3">Paciente</th>
+                <th class="px-4 py-3">Edad</th>
+                <th class="px-4 py-3">Teléfono</th>
+                <th class="px-4 py-3">Origen</th>
+                <th class="px-4 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in pacientes %}
+            <tr class="border-t">
+                <td class="px-4 py-3 font-mono">{{ p.numero_historia }}</td>
+                <td class="px-4 py-3">{{ p.dni }}</td>
+                <td class="px-4 py-3 font-medium">{{ p.apellido_paterno }} {{ p.apellido_materno }}, {{ p.nombres }}</td>
+                <td class="px-4 py-3">{{ p.edad|default_if_none:"-" }}</td>
+                <td class="px-4 py-3">{{ p.telefono|default:"-" }}</td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 rounded-full {% if p.origen == 'API' %}bg-indigo-100 text-indigo-700{% else %}bg-amber-100 text-amber-800{% endif %}">{{ p.get_origen_display }}</span>
+                </td>
+                <td class="px-4 py-3"><a href="{% url 'nueva_cita' %}?dni={{ p.dni }}" class="text-indigo-600 hover:underline">Agendar cita</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">{% if q %}No se encontraron pacientes.{% else %}Aún no hay pacientes registrados.{% endif %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

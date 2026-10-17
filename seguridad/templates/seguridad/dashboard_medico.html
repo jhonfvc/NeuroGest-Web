@@ -3,13 +3,13 @@
 {% block contenido %}
 <h2 class="text-2xl font-bold text-slate-800 mb-4">Panel Médico</h2>
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    <div class="bg-white p-5 rounded-xl shadow-sm">
+    <a href="{% url 'agenda' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
         <p class="font-semibold text-indigo-700">Agenda del día</p>
-        <p class="text-sm text-slate-500 mt-1">Pacientes en espera (HU-09 / HU-12).</p>
-    </div>
-    <div class="bg-white p-5 rounded-xl shadow-sm">
-        <p class="font-semibold text-indigo-700">Historias clínicas</p>
-        <p class="text-sm text-slate-500 mt-1">Búsqueda y evolución (Sprint 3).</p>
-    </div>
+        <p class="text-sm text-slate-500 mt-1">Tus citas de hoy y pacientes en espera.</p>
+    </a>
+    <a href="{% url 'calendario' %}" class="block bg-white p-5 rounded-xl shadow-sm hover:shadow-md">
+        <p class="font-semibold text-indigo-700">Calendario</p>
+        <p class="text-sm text-slate-500 mt-1">Tu semana de atenciones.</p>
+    </a>
 </div>
 {% endblock %}

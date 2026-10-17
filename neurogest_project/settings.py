@@ -16,6 +16,15 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Carga las variables de .env (si existe) sin pisar las ya definidas en el sistema
+_env = BASE_DIR / '.env'
+if _env.exists():
+    for _linea in _env.read_text(encoding='utf-8').splitlines():
+        _linea = _linea.strip()
+        if _linea and not _linea.startswith('#') and '=' in _linea:
+            _clave, _valor = _linea.split('=', 1)
+            os.environ.setdefault(_clave.strip(), _valor.strip())
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -53,6 +62,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'seguridad.middleware.InactividadMiddleware',
     'seguridad.middleware.RolMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -158,3 +168,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # HU-02: el enlace de recuperación de contraseña vence en 1 hora
 PASSWORD_RESET_TIMEOUT = 60 * 60
+
+# HU-06: API REST de consulta de DNI (sin token se usa el registro manual, HU-07)
+RENIEC_API_URL = os.environ.get('RENIEC_API_URL', 'https://api.decolecta.com/v1/reniec/dni')
+RENIEC_API_TOKEN = os.environ.get('RENIEC_API_TOKEN', '')
