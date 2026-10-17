@@ -39,7 +39,8 @@ class Command(BaseCommand):
                 'email': f'{username}@neurogest.demo', 'is_staff': rol == Usuario.ADMIN,
                 'is_superuser': rol == Usuario.ADMIN,
             })
-            if creado:
+            # La contraseña de los usuarios demo siempre queda igual a DEMO_PASSWORD
+            if creado or not u.check_password(clave):
                 u.set_password(clave)
                 u.save()
             self.stdout.write(f"{'Creado' if creado else 'Ya existe'}: {username} ({u.get_rol_display()})")

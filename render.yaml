@@ -15,7 +15,7 @@ services:
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DEMO_PASSWORD
-        generateValue: true
+        value: NeuroGest#Demo2026
       - key: CARGAR_DEMO
         value: "True"
       - key: RENIEC_API_TOKEN
